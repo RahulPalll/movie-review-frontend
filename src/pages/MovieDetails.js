@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import Navbar from "../components/Navbar";
@@ -13,11 +13,31 @@ const MovieDetails = () => {
   const [reviewSearch, setReviewSearch] = useState("");
   const [filteredReviews, setFilteredReviews] = useState([]);
 
+  // Fetch movie details using useCallback
+  const fetchMovie = useCallback(() => {
+    API.get(`/movies/${id}`)
+      .then((response) => setMovie(response.data))
+      .catch((error) => console.error("Error fetching movie:", error));
+  }, [id]);
+
+  // Fetch reviews using useCallback
+  const fetchReviews = useCallback(() => {
+    API.get("/reviews")
+      .then((response) =>
+        setReviews(
+          response.data.filter((review) => review.movie.id === parseInt(id))
+        )
+      )
+      .catch((error) => console.error("Error fetching reviews:", error));
+  }, [id]);
+
+  // UseEffect for fetching movie and reviews
   useEffect(() => {
     fetchMovie();
     fetchReviews();
-  }, [id]);
+  }, [fetchMovie, fetchReviews]);
 
+  // Filter reviews based on the search term
   useEffect(() => {
     setFilteredReviews(
       reviews.filter(
@@ -32,22 +52,7 @@ const MovieDetails = () => {
     );
   }, [reviewSearch, reviews]);
 
-  const fetchMovie = () => {
-    API.get(`/movies/${id}`)
-      .then((response) => setMovie(response.data))
-      .catch((error) => console.error("Error fetching movie:", error));
-  };
-
-  const fetchReviews = () => {
-    API.get("/reviews")
-      .then((response) =>
-        setReviews(
-          response.data.filter((review) => review.movie.id === parseInt(id))
-        )
-      )
-      .catch((error) => console.error("Error fetching reviews:", error));
-  };
-
+  // Handle review deletion
   const handleDeleteReview = (reviewId) => {
     if (window.confirm("Are you sure you want to delete this review?")) {
       API.delete(`/reviews/${reviewId}`)
@@ -63,6 +68,7 @@ const MovieDetails = () => {
     }
   };
 
+  // Handle review editing
   const handleEditReview = () => {
     API.patch(`/reviews/${editingReview.id}`, editingReview)
       .then(() => {
